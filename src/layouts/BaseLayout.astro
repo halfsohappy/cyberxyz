@@ -1,0 +1,87 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = 'python tools running in your browser' } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} // cyberxyz</title>
+  <meta name="description" content={description} />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" class="site-logo">
+      <span class="prompt-char">&gt;</span>
+      <span class="logo-text">cyberxyz</span>
+    </a>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="site-footer">
+    <span>// <a href="https://github.com/halfsohappy" target="_blank" rel="noopener">halfsohappy</a> &middot; python tools in the browser</span>
+  </footer>
+</body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+
+  .site-header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+  }
+  .site-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .site-logo:hover { text-decoration: none; }
+  .prompt-char {
+    color: var(--green);
+    font-weight: 500;
+  }
+  .logo-text {
+    color: var(--text-bright);
+    letter-spacing: 0.05em;
+  }
+  .logo-text:hover {
+    color: var(--green);
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .site-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .site-footer a {
+    color: var(--text-dim);
+  }
+  .site-footer a:hover {
+    color: var(--green);
+  }
+</style>

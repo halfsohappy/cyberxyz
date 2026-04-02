@@ -1,0 +1,778 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="vector-bodice"
+  description="parametric sewing pattern generator — input 8 measurements, get SVG bodice blocks"
+>
+  <div class="tool-header">
+    <div class="tool-title">
+      <span class="prompt-char">&gt;</span>
+      <span class="tool-name">vector-bodice</span>
+      <span class="tool-sub">// parametric sewing pattern generator</span>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot loading" id="statusDot"></span>
+      <span id="statusLabel">initializing pyodide runtime<span class="cursor" aria-hidden="true"></span></span>
+    </div>
+  </div>
+
+  <div class="app-layout">
+
+    <!-- ===== Left: inputs ===== -->
+    <div class="panel-left">
+      <div class="panel-scroll">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">// measurements</span>
+            <button class="btn btn-sm" id="btnRandom" title="load a random test size">⚄ random</button>
+          </div>
+          <p class="hint-text">all values in inches &middot; hover a label for guidance
+            <span id="sizeTag" class="size-tag"></span>
+          </p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inp-alpha" title="Circumference at the natural waist">waist</label>
+              <input type="number" id="inp-alpha" value="28" step="0.25" min="18" max="60" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-beta" title="Circumference at the fullest part of the bust">bust</label>
+              <input type="number" id="inp-beta" value="36" step="0.25" min="24" max="72" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-gamma" title="Distance down the back from base of neck (nape) to natural waist">back nape to waist</label>
+              <input type="number" id="inp-gamma" value="15.5" step="0.25" min="10" max="26" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-delta" title="Over the shoulder from base of neck to shoulder tip">neck to shoulder</label>
+              <input type="number" id="inp-delta" value="5" step="0.25" min="2" max="10" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-epsilon" title="Straight from shoulder tip down to bust point (nipple level)">shoulder to bust pt</label>
+              <input type="number" id="inp-epsilon" value="9" step="0.25" min="5" max="16" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-zeta" title="Full distance between bust points, nipple to nipple">bust pt to bust pt</label>
+              <input type="number" id="inp-zeta" value="7" step="0.25" min="3" max="14" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-eta" title="Width of the front body from side seam to center front, at bust level">front width</label>
+              <input type="number" id="inp-eta" value="14" step="0.25" min="8" max="24" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="inp-theta" title="Width of the back body from side seam to center back, at bust level">back width</label>
+              <input type="number" id="inp-theta" value="14" step="0.25" min="8" max="24" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="cb-row" style="margin-top: 10px;">
+            <input type="checkbox" id="inp-deepen" />
+            <label for="inp-deepen">deepen bust dart (+½&quot;)</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">// options</span>
+          </div>
+
+          <div class="form-group">
+            <label for="inp-seam">seam allowance (in)</label>
+            <input type="number" id="inp-seam" value="0.75" step="0.125" min="0" max="2" inputmode="decimal" />
+          </div>
+          <div class="sa-presets" id="saPresets">
+            <button class="sa-pill" data-sa="0">none</button>
+            <button class="sa-pill" data-sa="0.375">⅜</button>
+            <button class="sa-pill" data-sa="0.5">½</button>
+            <button class="sa-pill" data-sa="0.625">⅝</button>
+            <button class="sa-pill active" data-sa="0.75">¾</button>
+            <button class="sa-pill" data-sa="1">1</button>
+            <button class="sa-pill" data-sa="1.25">1¼</button>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="cb-row">
+            <input type="checkbox" id="inp-fold" checked />
+            <label for="inp-fold">on the fold (mirror front piece)</label>
+          </div>
+          <div class="cb-row">
+            <input type="checkbox" id="inp-white" />
+            <label for="inp-white">white fill</label>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-green" id="btnGenerate" disabled>generate →</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== Right: preview ===== -->
+    <div class="panel-right">
+
+      <div class="tabs">
+        <button class="tab active" data-tab="front">front</button>
+        <button class="tab" data-tab="back">back</button>
+      </div>
+
+      <div class="error-banner" id="errorBanner"></div>
+
+      <div class="preview-area" id="previewArea">
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <div class="spinner" id="loadingSpinner"></div>
+          <span class="placeholder-text" id="placeholderText">loading python runtime…</span>
+        </div>
+        <div class="svg-container" id="svgFront" style="display:none"></div>
+        <div class="svg-container" id="svgBack"  style="display:none"></div>
+      </div>
+
+      <div class="download-bar" id="downloadBar">
+        <button class="btn btn-green" id="btnDlFront">↓ front.svg</button>
+        <button class="btn btn-green" id="btnDlBack">↓ back.svg</button>
+        <span class="dl-spacer"></span>
+        <button class="btn" id="btnDlBoth">↓ combined.svg</button>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="attribution">
+    // derived from <em>Costume Technician's Handbook</em>, 3rd ed., Ingham/Covey pp. 110–117 &mdash;
+    tool by <a href="https://github.com/halfsohappy/vector-bodice" target="_blank" rel="noopener">annie lee</a>
+  </p>
+</BaseLayout>
+
+<!-- Pyodide runtime -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.3/full/pyodide.js" is:inline></script>
+
+<script is:inline>
+  /* ── State ─────────────────────────────────────────────────────────── */
+  let pyodide   = null;
+  let svgData   = { front: null, back: null };
+  let svgDims   = { front: [0, 0], back: [0, 0] };
+  let activeTab = 'front';
+
+  /* ── Helpers ────────────────────────────────────────────────────────── */
+  function setStatus(label, state) {
+    document.getElementById('statusDot').className    = 'status-dot ' + state;
+    document.getElementById('statusLabel').textContent = label;
+  }
+
+  function showTab(tab) {
+    document.getElementById('svgFront').style.display = tab === 'front' ? 'block' : 'none';
+    document.getElementById('svgBack').style.display  = tab === 'back'  ? 'block' : 'none';
+  }
+
+  function downloadSVG(svgStr, filename) {
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ── Tabs ───────────────────────────────────────────────────────────── */
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      showTab(activeTab);
+    });
+  });
+
+  /* ── Seam allowance presets ─────────────────────────────────────────── */
+  const seamInput = document.getElementById('inp-seam');
+  document.getElementById('saPresets').addEventListener('click', e => {
+    const pill = e.target.closest('.sa-pill');
+    if (!pill) return;
+    seamInput.value = pill.dataset.sa;
+    document.querySelectorAll('.sa-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+  seamInput.addEventListener('input', () => {
+    document.querySelectorAll('.sa-pill').forEach(p =>
+      p.classList.toggle('active', p.dataset.sa === seamInput.value));
+  });
+
+  /* ── Pyodide init ───────────────────────────────────────────────────── */
+  async function initPyodide() {
+    setStatus('loading runtime…', 'loading');
+    pyodide = await loadPyodide({
+      indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.3/full/'
+    });
+
+    setStatus('loading numpy…', 'loading');
+    await pyodide.loadPackage('numpy');
+
+    setStatus('loading pattern library…', 'loading');
+    const [blockSrc, renderSrc] = await Promise.all([
+      fetch('/tools/bodice/block.py').then(r => {
+        if (!r.ok) throw new Error(`block.py fetch failed (${r.status})`);
+        return r.text();
+      }),
+      fetch('/tools/bodice/render.py').then(r => {
+        if (!r.ok) throw new Error(`render.py fetch failed (${r.status})`);
+        return r.text();
+      }),
+    ]);
+
+    pyodide.FS.writeFile('/home/pyodide/block.py',  blockSrc);
+    pyodide.FS.writeFile('/home/pyodide/render.py', renderSrc);
+
+    await pyodide.runPythonAsync(`
+import sys
+sys.path.insert(0, '/home/pyodide')
+import block
+import render
+    `);
+
+    setStatus('ready', 'ready');
+    document.getElementById('btnGenerate').disabled = false;
+    document.getElementById('loadingSpinner').style.display  = 'none';
+    document.getElementById('placeholderText').textContent =
+      'enter measurements and click generate';
+  }
+
+  /* ── Generate ───────────────────────────────────────────────────────── */
+  async function generate() {
+    const btn = document.getElementById('btnGenerate');
+    btn.disabled = true;
+    btn.textContent = 'generating…';
+
+    const errorBanner = document.getElementById('errorBanner');
+    errorBanner.classList.remove('visible');
+
+    document.getElementById('previewPlaceholder').style.display = 'flex';
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('placeholderText').textContent = 'generating pattern…';
+    document.getElementById('svgFront').style.display = 'none';
+    document.getElementById('svgBack').style.display  = 'none';
+    document.getElementById('downloadBar').classList.remove('visible');
+    setStatus('generating…', 'loading');
+
+    try {
+      const vals = {
+        alpha:   parseFloat(document.getElementById('inp-alpha').value),
+        beta:    parseFloat(document.getElementById('inp-beta').value),
+        gamma:   parseFloat(document.getElementById('inp-gamma').value),
+        delta:   parseFloat(document.getElementById('inp-delta').value),
+        epsilon: parseFloat(document.getElementById('inp-epsilon').value),
+        zeta:    parseFloat(document.getElementById('inp-zeta').value),
+        eta:     parseFloat(document.getElementById('inp-eta').value),
+        theta:   parseFloat(document.getElementById('inp-theta').value),
+        seam:    parseFloat(document.getElementById('inp-seam').value || '0'),
+        fold:    document.getElementById('inp-fold').checked,
+        deepen:  document.getElementById('inp-deepen').checked,
+        white:   document.getElementById('inp-white').checked,
+      };
+
+      const FIELD_LABELS = {
+        alpha: 'waist', beta: 'bust', gamma: 'back length', delta: 'neck–shoulder',
+        epsilon: 'shoulder–bust point', zeta: 'bust point to bust point',
+        eta: 'front width', theta: 'back width',
+      };
+      for (const [k, v] of Object.entries(vals)) {
+        if (k !== 'fold' && k !== 'deepen' && k !== 'white' && (isNaN(v) || v < 0))
+          throw new Error(`invalid value for ${FIELD_LABELS[k] || k}`);
+      }
+
+      const pyResult = await pyodide.runPythonAsync(`
+import json
+_r = render.render_svgs(
+    ${vals.alpha}, ${vals.beta}, ${vals.gamma}, ${vals.delta},
+    ${vals.epsilon}, ${vals.zeta}, ${vals.eta}, ${vals.theta},
+    fold=${vals.fold ? 'True' : 'False'},
+    seam_allowance=${vals.seam},
+    deepen_bust_dart=${vals.deepen ? 'True' : 'False'},
+    white_fill=${vals.white ? 'True' : 'False'}
+)
+json.dumps(_r)
+      `);
+
+      const result = JSON.parse(pyResult);
+      svgData.front = result.front;
+      svgData.back  = result.back;
+      svgDims.front = [result.front_w, result.front_h];
+      svgDims.back  = [result.back_w,  result.back_h];
+
+      const clean = s => s
+        .replace(/<style[^>]*>@import[^<]*<\/style>/gi, '')
+        .replace(/(<svg[^>]*?)\s+width="\d+"/, '$1')
+        .replace(/(<svg[^>]*?)\s+height="\d+"/, '$1');
+
+      document.getElementById('svgFront').innerHTML = clean(svgData.front);
+      document.getElementById('svgBack').innerHTML  = clean(svgData.back);
+
+      document.getElementById('previewPlaceholder').style.display = 'none';
+      document.getElementById('downloadBar').classList.add('visible');
+      showTab(activeTab);
+      setStatus('ready', 'ready');
+
+    } catch (err) {
+      errorBanner.textContent = '⚠ ' + (err.message || String(err));
+      errorBanner.classList.add('visible');
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('placeholderText').textContent = 'generation failed.';
+      setStatus('error', 'error');
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'generate →';
+    }
+  }
+
+  document.getElementById('btnGenerate').addEventListener('click', generate);
+  document.querySelectorAll('input[type="number"]').forEach(inp =>
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !document.getElementById('btnGenerate').disabled)
+        generate();
+    })
+  );
+
+  /* ── Downloads ──────────────────────────────────────────────────────── */
+  const DL_DPI = 300;
+  function dlFilename(piece, w, h) {
+    return `bodice_block_${piece}_${w}x${h}.svg`;
+  }
+  function buildCombinedSVG() {
+    const GAP_IN   = 0.5;
+    const [fw, fh] = svgDims.front;
+    const [bw, bh] = svgDims.back;
+    const totalWpx = (fw + GAP_IN + bw) * DL_DPI;
+    const totalHpx = Math.max(fh, bh) * DL_DPI;
+    const frontY   = ((Math.max(fh, bh) - fh) / 2) * DL_DPI;
+    const backX    = (fw + GAP_IN) * DL_DPI;
+    const backY    = ((Math.max(fh, bh) - bh) / 2) * DL_DPI;
+    const fpx = fw * DL_DPI, fhpx = fh * DL_DPI;
+    const bpx = bw * DL_DPI, bhpx = bh * DL_DPI;
+    const strip = s => s.replace(/<\?xml[^?]*\?>\s*/i, '');
+    return [
+      `<?xml version="1.0" encoding="UTF-8"?>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWpx}" height="${totalHpx}"`,
+      `     viewBox="0 0 ${totalWpx} ${totalHpx}">`,
+      `  <rect width="100%" height="100%" fill="white"/>`,
+      `  <svg x="0" y="${frontY}" width="${fpx}" height="${fhpx}"`,
+      `       viewBox="0 0 ${fpx} ${fhpx}">`,
+      strip(svgData.front),
+      `  </svg>`,
+      `  <svg x="${backX}" y="${backY}" width="${bpx}" height="${bhpx}"`,
+      `       viewBox="0 0 ${bpx} ${bhpx}">`,
+      strip(svgData.back),
+      `  </svg>`,
+      `</svg>`,
+    ].join('\n');
+  }
+
+  document.getElementById('btnDlFront').addEventListener('click', () => {
+    if (svgData.front) downloadSVG(svgData.front, dlFilename('front', ...svgDims.front));
+  });
+  document.getElementById('btnDlBack').addEventListener('click', () => {
+    if (svgData.back) downloadSVG(svgData.back, dlFilename('back', ...svgDims.back));
+  });
+  document.getElementById('btnDlBoth').addEventListener('click', () => {
+    if (!svgData.front || !svgData.back) return;
+    const [fw, fh] = svgDims.front;
+    const [bw, bh] = svgDims.back;
+    downloadSVG(buildCombinedSVG(), dlFilename('combined', fw + 0.5 + bw, Math.max(fh, bh)));
+  });
+
+  /* ── Random fill ────────────────────────────────────────────────────── */
+  const TEST_SIZES = [
+    { a:24, b:32, g:14.5,  d:4.5,  e:8.0,  z:6.5, n:12.5, t:12.5, label:'XS' },
+    { a:26, b:34, g:15.0,  d:4.75, e:8.5,  z:7.0, n:13.0, t:13.0, label:'S' },
+    { a:28, b:36, g:15.5,  d:5.0,  e:9.0,  z:7.0, n:14.0, t:14.0, label:'M' },
+    { a:30, b:38, g:16.0,  d:5.25, e:9.5,  z:7.5, n:14.5, t:14.5, label:'L' },
+    { a:32, b:40, g:16.0,  d:5.25, e:10.0, z:8.0, n:15.0, t:14.5, label:'XL' },
+    { a:34, b:42, g:16.5,  d:5.5,  e:10.5, z:8.5, n:15.5, t:15.0, label:'2XL' },
+    { a:25, b:33, g:13.5,  d:4.25, e:7.5,  z:6.5, n:12.5, t:12.5, label:'petite S' },
+    { a:27, b:35, g:17.5,  d:5.0,  e:9.0,  z:7.0, n:13.5, t:13.5, label:'tall S' },
+    { a:26, b:40, g:15.5,  d:5.0,  e:9.5,  z:7.5, n:14.5, t:14.0, label:'hourglass' },
+    { a:30, b:44, g:16.0,  d:5.25, e:10.5, z:9.0, n:15.5, t:15.0, label:'full bust' },
+  ];
+  const SA_VALUES = ['0', '0.375', '0.5', '0.625', '0.75', '1', '1.25'];
+  let _lastRandIdx = -1;
+
+  function randomFill() {
+    let idx;
+    do { idx = Math.floor(Math.random() * TEST_SIZES.length); }
+    while (idx === _lastRandIdx && TEST_SIZES.length > 1);
+    _lastRandIdx = idx;
+    const s = TEST_SIZES[idx];
+    document.getElementById('inp-alpha').value   = s.a;
+    document.getElementById('inp-beta').value    = s.b;
+    document.getElementById('inp-gamma').value   = s.g;
+    document.getElementById('inp-delta').value   = s.d;
+    document.getElementById('inp-epsilon').value = s.e;
+    document.getElementById('inp-zeta').value    = s.z;
+    document.getElementById('inp-eta').value     = s.n;
+    document.getElementById('inp-theta').value   = s.t;
+    const tag = document.getElementById('sizeTag');
+    tag.textContent = s.label;
+    tag.classList.add('visible');
+    const saVal = SA_VALUES[Math.floor(Math.random() * SA_VALUES.length)];
+    document.getElementById('inp-seam').value = saVal;
+    document.querySelectorAll('.sa-pill').forEach(p =>
+      p.classList.toggle('active', p.dataset.sa === saVal));
+  }
+
+  document.getElementById('btnRandom').addEventListener('click', randomFill);
+  document.querySelectorAll('#inp-alpha,#inp-beta,#inp-gamma,#inp-delta,#inp-epsilon,#inp-zeta,#inp-eta,#inp-theta')
+    .forEach(inp => inp.addEventListener('input', () =>
+      document.getElementById('sizeTag').classList.remove('visible')));
+
+  /* ── Boot ───────────────────────────────────────────────────────────── */
+  initPyodide().catch(err => {
+    setStatus('load failed', 'error');
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('placeholderText').textContent =
+      'failed to load python runtime: ' + err.message;
+    console.error(err);
+  });
+</script>
+
+<style>
+  /* ── Tool header ────────────────────────────────────────────────────── */
+  .tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .tool-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .prompt-char { color: var(--green); }
+  .tool-name   { color: var(--text-bright); font-weight: 500; }
+  .tool-sub    { color: var(--text-dim); font-size: 11px; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-dim);
+  }
+  .status-dot.loading { background: #e3bb7f; animation: pulse 1.2s infinite; }
+  .status-dot.ready   { background: var(--green); box-shadow: 0 0 6px rgba(0,255,65,.5); }
+  .status-dot.error   { background: var(--danger); }
+
+  /* ── App layout ─────────────────────────────────────────────────────── */
+  .app-layout {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    height: calc(100dvh - 220px);
+    min-height: 500px;
+    overflow: hidden;
+  }
+
+  /* ── Left panel ─────────────────────────────────────────────────────── */
+  .panel-left {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+  .panel-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── Cards ──────────────────────────────────────────────────────────── */
+  .card {
+    border: 1px solid var(--border);
+    padding: 14px;
+    margin-bottom: 10px;
+    background: var(--bg);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .card-title {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+  .hint-text {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  /* size tag */
+  .size-tag {
+    display: none;
+    font-size: 10px;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    padding: 1px 6px;
+    margin-left: 6px;
+  }
+  .size-tag.visible { display: inline; }
+
+  .btn-sm {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  /* ── Form ───────────────────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .form-group label {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .form-group input[type="number"] {
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--green);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.12s;
+    -moz-appearance: textfield;
+  }
+  .form-group input[type="number"]:focus {
+    border-color: var(--green-dim);
+    background: var(--bg-card);
+  }
+  .form-group input[type="number"]::-webkit-inner-spin-button { opacity: 0.2; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0;
+  }
+
+  /* seam allowance presets */
+  .sa-presets {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .sa-pill {
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .sa-pill:hover {
+    border-color: var(--green-dim);
+    color: var(--text);
+  }
+  .sa-pill.active {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-glow);
+  }
+
+  /* checkboxes */
+  .cb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 7px 0 3px;
+  }
+  .cb-row input[type="checkbox"] {
+    width: 13px; height: 13px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+  .cb-row label {
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* ── Right panel ────────────────────────────────────────────────────── */
+  .panel-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-alt);
+  }
+
+  /* tabs */
+  .tabs {
+    display: flex;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 2px;
+    background: var(--bg-card);
+  }
+  .tab {
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 9px 16px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.1s;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* error banner */
+  .error-banner {
+    display: none;
+    margin: 10px 14px 0;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 51, 51, 0.3);
+    background: rgba(255, 51, 51, 0.05);
+    font-size: 11px;
+    color: var(--danger);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .error-banner.visible { display: block; }
+
+  /* preview */
+  .preview-area {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    color: var(--text-dim);
+  }
+  .placeholder-text {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .svg-container {
+    max-width: 100%;
+    width: 100%;
+  }
+  .svg-container svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* download bar */
+  .download-bar {
+    display: none;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .download-bar.visible { display: flex; }
+  .dl-spacer { flex: 1; }
+
+  /* attribution */
+  .attribution {
+    margin-top: 16px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .attribution a { color: var(--text-dim); }
+  .attribution a:hover { color: var(--green); }
+
+  /* ── Responsive ─────────────────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .app-layout {
+      flex-direction: column;
+      height: auto;
+      min-height: unset;
+    }
+    .panel-left {
+      width: 100%;
+      max-height: 55dvh;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-right { min-height: 400px; }
+    .download-bar { flex-wrap: wrap; }
+    .dl-spacer { display: none; }
+    .download-bar .btn { flex: 1 1 auto; }
+  }
+  @media (max-width: 420px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .tool-sub { display: none; }
+  }
+</style>

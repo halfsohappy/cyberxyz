@@ -1,0 +1,112 @@
+/* cyberxyz — terminal/matrix theme */
+
+:root {
+  --bg:          #050505;
+  --bg-alt:      #0a0a0a;
+  --bg-card:     #0d0d0d;
+  --bg-input:    #0f0f0f;
+  --green:       #00ff41;
+  --green-dim:   #003b10;
+  --green-glow:  rgba(0, 255, 65, 0.15);
+  --text:        #b0b0b0;
+  --text-bright: #e0e0e0;
+  --text-dim:    #505050;
+  --border:      #1a2a1a;
+  --border-bright: #2a4a2a;
+  --danger:      #ff3333;
+  --font:        'Martian Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+body {
+  background: var(--bg);
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+a {
+  color: var(--green);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* blinking cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--green);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+/* pulse dot */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* shared button base */
+.btn {
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 7px 16px;
+  border: 1px solid var(--green-dim);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-glow);
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-green {
+  border-color: var(--green);
+  color: var(--green);
+}
+.btn-green:hover:not(:disabled) {
+  background: var(--green-glow);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+}

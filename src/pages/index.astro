@@ -1,0 +1,151 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const tools = [
+  {
+    id: '01',
+    slug: 'bodice',
+    name: 'vector-bodice',
+    description: 'parametric sewing pattern generator',
+    detail: 'input 8 measurements → SVG bodice block',
+    status: 'ONLINE',
+    href: '/tools/bodice',
+  },
+];
+---
+<BaseLayout title="home">
+  <div class="landing">
+
+    <pre class="ascii-logo" aria-hidden="true">
+  ██████╗██╗   ██╗██████╗ ███████╗██████╗ ██╗  ██╗██╗   ██╗███████╗
+ ██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗╚██╗██╔╝╚██╗ ██╔╝╚══███╔╝
+ ██║      ╚████╔╝ ██████╔╝█████╗  ██████╔╝ ╚███╔╝  ╚████╔╝   ███╔╝
+ ██║       ╚██╔╝  ██╔══██╗██╔══╝  ██╔══██╗ ██╔██╗   ╚██╔╝   ███╔╝
+ ╚██████╗   ██║   ██████╔╝███████╗██║  ██║██╔╝ ██╗   ██║   ███████╗
+  ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝</pre>
+
+    <p class="tagline">
+      <span class="comment">// python tools, running in your browser</span>
+      <span class="cursor" aria-hidden="true"></span>
+    </p>
+
+    <div class="dir-listing">
+      <div class="dir-header">
+        <span class="prompt">&gt; ls tools/</span>
+      </div>
+
+      <div class="dir-entries">
+        {tools.map(tool => (
+          <a href={tool.href} class="tool-entry">
+            <span class="entry-id">[{tool.id}]</span>
+            <span class="entry-name">{tool.name}</span>
+            <span class="entry-sep">//</span>
+            <span class="entry-desc">{tool.description}</span>
+            <span class="entry-spacer"></span>
+            <span class={`entry-status ${tool.status === 'ONLINE' ? 'status-online' : 'status-offline'}`}>
+              [{tool.status}]
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><span class="comment">//</span> client-side computation via pyodide (python → wasm)</p>
+      <p><span class="comment">//</span> no data leaves your browser</p>
+    </div>
+
+  </div>
+</BaseLayout>
+
+<style>
+  .landing {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .ascii-logo {
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--green);
+    overflow-x: auto;
+    white-space: pre;
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+  }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .comment { color: var(--text-dim); }
+
+  /* directory listing */
+  .dir-listing {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  .dir-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .prompt { color: var(--green); }
+
+  .dir-entries {
+    padding: 8px 0;
+  }
+
+  .tool-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.1s;
+    font-size: 12px;
+  }
+  .tool-entry:hover {
+    background: var(--green-glow);
+    color: var(--text-bright);
+    text-decoration: none;
+  }
+  .tool-entry:hover .entry-name {
+    color: var(--green);
+  }
+
+  .entry-id    { color: var(--text-dim); width: 28px; flex-shrink: 0; }
+  .entry-name  { color: var(--text-bright); font-weight: 500; min-width: 140px; }
+  .entry-sep   { color: var(--green-dim); }
+  .entry-desc  { color: var(--text); }
+  .entry-spacer { flex: 1; }
+  .entry-status { font-size: 11px; flex-shrink: 0; }
+  .status-online  { color: var(--green); }
+  .status-offline { color: var(--text-dim); }
+
+  /* info block */
+  .info-block {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* responsive: hide ascii art on very small screens */
+  @media (max-width: 700px) {
+    .ascii-logo {
+      font-size: 7px;
+    }
+  }
+  @media (max-width: 480px) {
+    .ascii-logo { display: none; }
+    .tool-entry { flex-wrap: wrap; }
+    .entry-spacer { display: none; }
+  }
+</style>
